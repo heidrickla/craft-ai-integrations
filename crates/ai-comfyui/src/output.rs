@@ -15,10 +15,13 @@ pub(crate) fn fetch(
     output_dir: Option<&Path>,
     max_bytes: u64,
 ) -> Result<Event, AiError> {
-    let keys: &[&str] = if video {
-        &["videos", "gifs"]
-    } else {
-        &["images"]
+    // ComfyUI's own SaveVideo and SaveWEBM list their file under `images`, flagged `animated`. A
+    // still from a SaveImage node carries no flag and is never taken as a video.
+    let animated = node.pointer("/animated/0").and_then(Value::as_bool) == Some(true);
+    let keys: &[&str] = match (video, animated) {
+        (true, true) => &["videos", "gifs", "images"],
+        (true, false) => &["videos", "gifs"],
+        (false, _) => &["images"],
     };
     let file = keys
         .iter()

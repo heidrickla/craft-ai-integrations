@@ -235,6 +235,8 @@ P4 = [
     ('output-any-media-accepted', CF_OUT, 'if sniff::media_type(head).map(|(media, _)| media) == Some(expected) {', 'if sniff::media_type(head).is_some() {', CF, 'media_checks', 'an_output_that_is'),
     ('output-on-disk-not-checked', CF_OUT, 'check_bytes(&head, media)?;', 'let _ = (&head, media);', CF, 'media_checks', 'an_output_that_is'),
     ('output-inline-not-checked', CF_OUT, 'check_bytes(&bytes, media)?;', 'let _ = (&bytes, media);', CF, 'media_checks', 'an_output_that_is'),
+    ('output-still-taken-as-video', CF_OUT, 'let animated = node.pointer("/animated/0").and_then(Value::as_bool) == Some(true);', 'let animated = true;', CF, 'media_checks', 'not_taken_as_a_video'),
+    ('output-save-video-missed', CF_OUT, '(true, true) => &["videos", "gifs", "images"],', '(true, true) => &["videos", "gifs"],', CF, 'media_checks', 'from_save_video'),
     ('input-not-checked', CF_IN, 'if sniff::media_type(head).map(|(media, _)| media) != Some(declared) {', 'if false {', CF, 'media_checks', 'never_uploaded'),
     ('input-any-image-accepted', CF_IN, 'if sniff::media_type(head).map(|(media, _)| media) != Some(declared) {', 'if sniff::media_type(head).is_none() {', CF, 'media_checks', 'never_uploaded'),
     ('input-size-unchecked', CF_IN, 'if u64::try_from(data.len()).unwrap_or(u64::MAX) > max {', 'if false {', CF, 'media_checks', 'over_the_limit'),
