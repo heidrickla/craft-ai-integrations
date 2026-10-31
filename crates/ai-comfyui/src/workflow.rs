@@ -172,7 +172,22 @@ impl Workflow {
         output_node: &str,
         source: Binding,
     ) -> Result<Self, AiError> {
-        let mut workflow = Self::import(id, "image.generate", graph, prompt, output_node)?;
+        let mut workflow =
+            Self::import_with_source(id, "image.generate", graph, prompt, output_node, source)?;
+        workflow.capability = CapabilityId::parse("image.segment")
+            .map_err(|_| AiError::invalid("invalid segment capability"))?;
+        Ok(workflow)
+    }
+
+    fn import_with_source(
+        id: &str,
+        capability: &str,
+        graph: Value,
+        prompt: Binding,
+        output_node: &str,
+        source: Binding,
+    ) -> Result<Self, AiError> {
+        let mut workflow = Self::import(id, capability, graph, prompt, output_node)?;
         workflow.check_media_binding(&source, "source")?;
         for (binding, role) in [(&workflow.prompt, "prompt"), (&source, "source")] {
             if !workflow.feeds_output(&binding.node) {
@@ -181,8 +196,6 @@ impl Workflow {
                 )));
             }
         }
-        workflow.capability = CapabilityId::parse("image.segment")
-            .map_err(|_| AiError::invalid("invalid segment capability"))?;
         workflow.source = Some(source);
         Ok(workflow)
     }

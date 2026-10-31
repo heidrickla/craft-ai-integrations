@@ -15,16 +15,6 @@ impl Workflow {
         output_node: &str,
         source: Binding,
     ) -> Result<Self, AiError> {
-        let mut workflow = Self::import(id, "video.generate", graph, prompt, output_node)?;
-        workflow.check_media_binding(&source, "source")?;
-        for (binding, role) in [(&workflow.prompt, "prompt"), (&source, "source")] {
-            if !workflow.feeds_output(&binding.node) {
-                return Err(AiError::invalid(format!(
-                    "{role} node is not connected to the output"
-                )));
-            }
-        }
-        workflow.source = Some(source);
-        Ok(workflow)
+        Self::import_with_source(id, "video.generate", graph, prompt, output_node, source)
     }
 }

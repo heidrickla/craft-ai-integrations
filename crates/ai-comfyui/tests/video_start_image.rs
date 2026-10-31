@@ -2,6 +2,7 @@
 //! first frame through `LoadImage`). The image is required once bound, read and checked by its bytes
 //! like an inpaint source, and uploaded before the graph is queued. Scripted localhost servers and
 //! temporary folders only.
+mod media_support;
 #[path = "../../ai-openai/tests/support/mod.rs"]
 mod support;
 
@@ -9,7 +10,8 @@ use craft_ai_comfyui::{ComfyConfig, ComfyProvider, Workflow, WorkflowLibrary, Wo
 use craft_ai_core::capability::CapabilityId;
 use craft_ai_core::model::InputRole;
 use craft_ai_core::payload::Payload;
-use craft_ai_core::{ErrorKind, ModelId, Provider, Request};
+use craft_ai_core::{ErrorKind, Provider, Request};
+use media_support::file_handle;
 use serde_json::{Value, json};
 use support::{Reply, Server};
 
@@ -98,12 +100,7 @@ fn submit(
     p: &ComfyProvider,
     request: &Request,
 ) -> Result<craft_ai_core::JobId, craft_ai_core::AiError> {
-    p.submit(&ModelId::new("wan-ti2v").unwrap(), request)
-}
-
-fn file_handle(path: &std::path::Path, media: &str) -> Payload {
-    let uri = url::Url::from_file_path(path).unwrap().to_string();
-    Payload::handle(&uri, media, None).unwrap()
+    media_support::submit(p, "wan-ti2v", request)
 }
 
 fn write(dir: &tempfile::TempDir, name: &str, bytes: &[u8]) -> std::path::PathBuf {
@@ -186,30 +183,7 @@ fn a_start_image_that_is_not_the_image_it_claims_is_never_uploaded() {
     let mut big = PNG.to_vec();
     big.resize(5000, 7);
     let big = write(&dir, "big.png", &big);
-    let cases: Vec<(&str, Payload)> = vec![
-        (
-            "a text file declared as png",
-            file_handle(&secrets, "image/png"),
-        ),
-        (
-            "jpeg bytes declared as png",
-            file_handle(&wrong_kind, "image/png"),
-        ),
-        ("an empty file", file_handle(&empty, "image/png")),
-        ("a file over the limit", file_handle(&big, "image/png")),
-        (
-            "inline text declared as png",
-            Payload::inline("image/png", b"the password is hunter2".to_vec()).unwrap(),
-        ),
-        (
-            "inline html declared as jpeg",
-            Payload::inline("image/jpeg", b"<html></html>".to_vec()).unwrap(),
-        ),
-        (
-            "a format ComfyUI would receive mislabelled",
-            Payload::inline("image/webp", b"RIFF\0\0\0\0WEBPVP8 ".to_vec()).unwrap(),
-        ),
-    ];
+    let cases = media_support::invalid_image_cases(&secrets, &wrong_kind, &empty, Some(&big));
     for (why, bad) in cases {
         let server = video_server();
         let p = provider(&server, workflow(start_image()));
